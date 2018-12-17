@@ -1,0 +1,9 @@
+[package]
+name = "bch"
+version = "0.1.0"
+authors = ["sbaginsk <szymon.baginski@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+bitvec = "0.9"
+# itertools = "0.8"
