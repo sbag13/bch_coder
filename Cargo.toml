@@ -6,4 +6,7 @@ edition = "2018"
 
 [dependencies]
 bitvec = "0.9"
-# itertools = "0.8"
+env_logger = "0.6"
+log = "0.4"
+primes = "0.2"
+itertools = "0.8"
