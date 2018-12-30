@@ -63,15 +63,15 @@ fn create_adding_table(alphas: &Vec<BitVec>) -> Vec<Vec<i32>> {
 }
 
 fn create_gen_pol(degree: u32, t: u32, adding_table: &Vec<Vec<i32>>) -> BitVec {
-    let layers: Vec<Vec<u32>> = get_n_layers(t, adding_table[0].len());
     let mut min_pols = Vec::new();
-
+    let layers: Vec<Vec<u32>> = get_n_layers(t, adding_table[0].len());
     layers.iter().for_each(|layer| min_pols.push(calculate_layer_min_pol(layer, degree, adding_table)));
 
-    print_vec(&min_pols);
+    finite_multiply_bitvecs(&min_pols)
+}
 
-    min_pols.iter().fold(bitvec![1], |folded, pol| {
-        println!("folded {:?}, pol {:?}", folded, pol);
+fn finite_multiply_bitvecs(vec: &Vec<BitVec>) -> BitVec {
+    vec.iter().fold(bitvec![1], |folded, pol| {
         let mut to_add: Vec<BitVec> = Vec::new();
         for (i,bit) in pol.iter().rev().enumerate() {
             if bit == true {
@@ -80,8 +80,12 @@ fn create_gen_pol(degree: u32, t: u32, adding_table: &Vec<Vec<i32>>) -> BitVec {
                 to_add.push(elem);
             }
         }
-        println!("to add {:?}", to_add);
-        to_add.iter().fold(bitvec![0], |sum, element| sum ^ element.clone()) //TODO xor instead of add
+        to_add.iter().fold(bitvec![0], |mut sum, element| {
+            if sum.len() < element.len() {
+                sum >>= element.len() - sum.len();
+            }
+            sum ^ element.clone()
+        })
     })
 }
 
@@ -149,10 +153,24 @@ mod tests {
     use super::*;
 
     #[test]
+    fn finite_multiply_bitvecs_test() {
+        let to_multiply = vec![
+            bitvec![1,0,1,1,0],
+            bitvec![1,1,0,1],
+            bitvec![1,1]
+        ];
+        let expected = bitvec![1,0,0,0,0,0,0,1,0];
+        let result = finite_multiply_bitvecs(&to_multiply);
+        assert_eq!(expected, result);
+        println!("{:?}", result);
+    }
+
+    #[test]
     fn create_gen_pol_test() {
         let alphas = calculate_alphas(&bitvec![1,0,1,1]);
         let adding_table = create_adding_table(&alphas);
-        println!("{:?}", create_gen_pol(3, 2, &adding_table));
+        let expected = bitvec![1,1,1,1,1,1,1];
+        assert_eq!(expected, create_gen_pol(3, 2, &adding_table));
     }
 
     #[test]
