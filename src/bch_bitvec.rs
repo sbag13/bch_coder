@@ -5,17 +5,16 @@ pub trait BCHBitVec {
     fn truncate_preceding_zeros(&mut self);
     fn precede_with_zeros(&mut self, n: usize);
     fn remainder_divide(&self, divisor_orig: &BitVec) -> Result<BitVec, String>;
-    fn shift_cyclic(&mut self, n: i32);
+    fn shift_cyclic(&mut self, n: i32); //TODO to doc: negatives shift rights, positives shift left
 }
 
 impl BCHBitVec for BitVec {
-    fn finite_add(&self, vec: &BitVec) -> BitVec{
+    fn finite_add(&self, vec: &BitVec) -> BitVec {
         let mut self_clone = self.clone();
         let mut vec_clone = vec.clone();
         if self_clone.len() > vec.len() {
             vec_clone >>= self_clone.len() - vec_clone.len();
-        }
-        else if vec.len() > self_clone.len() {
+        } else if vec.len() > self_clone.len() {
             self_clone >>= vec_clone.len() - self_clone.len();
         }
 
@@ -83,26 +82,26 @@ mod tests {
 
     #[test]
     fn precede_with_zeros() {
-        let mut vec = bitvec![1,0];
+        let mut vec = bitvec![1, 0];
         vec.precede_with_zeros(2);
-        let expected = bitvec![0,0,1,0];
+        let expected = bitvec![0, 0, 1, 0];
         assert_eq!(vec, expected);
     }
 
     #[test]
     fn finite_multiply_test_when_self_shorter_than_multiplier() {
-        let vec = bitvec![1,0,1];
-        let multiplier = bitvec![1,0,0,1];
-        let expected = bitvec![1,1,0,0];
+        let vec = bitvec![1, 0, 1];
+        let multiplier = bitvec![1, 0, 0, 1];
+        let expected = bitvec![1, 1, 0, 0];
         let result = vec.finite_add(&multiplier);
         assert_eq!(expected, result);
     }
 
     #[test]
     fn finite_multiply_test_when_multiplier_shorter() {
-        let multiplier = bitvec![1,0,1];
-        let vec = bitvec![1,0,0,1];
-        let expected = bitvec![1,1,0,0];
+        let multiplier = bitvec![1, 0, 1];
+        let vec = bitvec![1, 0, 0, 1];
+        let expected = bitvec![1, 1, 0, 0];
         let result = vec.finite_add(&multiplier);
         assert_eq!(expected, result);
     }

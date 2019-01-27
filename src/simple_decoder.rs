@@ -38,7 +38,7 @@ impl Decoder for SimpleDecoder {
             let hamming_weight = syndrome.count_ones();
             if hamming_weight <= self.t as usize {
                 let mut extended_syndrome = syndrome.clone();
-                extended_syndrome.precede_with_zeros(encoded_clone.len() - syndrome.len());    // mochnacki 2.4.4
+                extended_syndrome.precede_with_zeros(encoded_clone.len() - syndrome.len()); // mochnacki 2.4.4
 
                 let mut corrected = encoded_clone ^ extended_syndrome;
 

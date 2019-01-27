@@ -53,16 +53,14 @@ fn create_adding_table(alphas: &Vec<BitVec>) -> Vec<Vec<i32>> {
 
 fn create_gen_pol(degree: u32, t: u32, adding_table: &Vec<Vec<i32>>) -> BitVec {
     let mut min_pols = Vec::new();
-    let layers: Vec<Vec<u32>> = get_n_layers(t, adding_table[0].len());
-    layers
-        .iter()
-        .for_each(|layer| {
-            min_pols.push(calculate_layer_min_pol(layer, adding_table));
-        });
+    let layers: Vec<Vec<u32>> = get_n_prime_layers(t, adding_table[0].len());
+    layers.iter().for_each(|layer| {
+        min_pols.push(calculate_layer_min_pol(layer, adding_table));
+    });
     finite_multiply_bitvecs_vec(&min_pols)
 }
 
-fn calculate_layer_min_pol(layer: &Vec<u32>, adding_table: &Vec<Vec<i32>>) -> BitVec {
+pub fn calculate_layer_min_pol(layer: &Vec<u32>, adding_table: &Vec<Vec<i32>>) -> BitVec {
     let layer_degree = layer.len() as u32;
     let mut min_pol = bitvec![0; (layer_degree + 1) as usize];
     min_pol.set(0, true);
@@ -71,9 +69,9 @@ fn calculate_layer_min_pol(layer: &Vec<u32>, adding_table: &Vec<Vec<i32>>) -> Bi
     for idx in 1..layer_degree {
         let combinations = layer.iter().combinations(idx as usize).collect_vec();
         let coefficient = combinations.iter().fold(-1, |sum, combination| {
-            let alpha = combination
-                .iter()
-                .fold(0, |sum, &&alpha| (sum + alpha) % (2u32.pow(layer_degree) - 1));
+            let alpha = combination.iter().fold(0, |sum, &&alpha| {
+                (sum + alpha) % (2u32.pow(layer_degree) - 1)
+            });
             if sum != -1i32 {
                 return adding_table[sum as usize][alpha as usize];
             } else {
@@ -87,10 +85,32 @@ fn calculate_layer_min_pol(layer: &Vec<u32>, adding_table: &Vec<Vec<i32>>) -> Bi
     min_pol
 }
 
-fn get_n_layers(n: u32, alphas_len: usize) -> Vec<Vec<u32>> {
+pub fn get_n_first_layers(n: u32, alphas_len: usize) -> Vec<Vec<u32>> {
+    let mut layers: Vec<Vec<u32>> = Vec::new();
+
+    for i in 1..(n + 1) {
+        let mut layer = Vec::new();
+        layer.push(i);
+        loop {
+            let candidate_alpha = (*layer.iter_mut().last().unwrap() * 2) as u32 % (alphas_len - 1) as u32;
+            if layer.contains(&candidate_alpha) {
+                layer.sort();
+                layers.push(layer);
+                break;
+            } else {
+                layer.push(candidate_alpha);
+            }
+        }
+    }
+
+    layers
+}
+
+fn get_n_prime_layers(n: u32, alphas_len: usize) -> Vec<Vec<u32>> {
+    //TODO to doc: layers start with prime powers
     let mut layers: Vec<Vec<u32>> = Vec::new();
     let mut prime_set = PrimeSet::new();
-    let mut first_primes: VecDeque<u64> = prime_set.iter().take(alphas_len as usize).collect();
+    let mut first_primes: VecDeque<u64> = prime_set.iter().take(alphas_len).collect();
     first_primes.push_front(1);
 
     for _i in 0..n {
@@ -117,7 +137,11 @@ fn get_n_layers(n: u32, alphas_len: usize) -> Vec<Vec<u32>> {
 }
 
 pub fn validate_params(n: i32, k: i32, gen_poly: &BitVec, prime_poly: &BitVec) {
-    if gen_poly.len() == 0 || n != k + gen_poly.len() as i32 - 1 || gen_poly[0] == false || prime_poly[0] == false {
+    if gen_poly.len() == 0
+        || n != k + gen_poly.len() as i32 - 1
+        || gen_poly[0] == false
+        || prime_poly[0] == false
+    {
         panic!(
             "Bad coder parameters. n: {}, k: {}, gen: {:?}",
             n, k, gen_poly
@@ -125,10 +149,17 @@ pub fn validate_params(n: i32, k: i32, gen_poly: &BitVec, prime_poly: &BitVec) {
     }
 }
 
-pub fn get_gen_poly(degree: i32, t: i32, prime_poly: &BitVec) -> BitVec {
+pub fn get_gen_poly(degree: i32, t: i32, prime_poly: &BitVec) -> BitVec {   //TODO move to classes
     let alphas = calculate_alphas(&prime_poly);
     let adding_table = create_adding_table(&alphas);
     create_gen_pol(degree as u32, t as u32, &adding_table)
+}
+
+pub fn get_gen_poly_and_adding_table(degree: i32, t: i32, prime_poly: &BitVec) -> (BitVec, Vec<Vec<i32>>) {   //TODO move to classes
+    let alphas = calculate_alphas(&prime_poly);
+    let adding_table = create_adding_table(&alphas);
+    let gen_poly = create_gen_pol(degree as u32, t as u32, &adding_table);
+    (gen_poly, adding_table)
 }
 
 pub fn finite_multiply_bitvecs_vec(vec: &Vec<BitVec>) -> BitVec {
@@ -141,9 +172,9 @@ pub fn finite_multiply_bitvecs_vec(vec: &Vec<BitVec>) -> BitVec {
                 to_add.push(elem);
             }
         }
-        to_add.iter().fold(bitvec![0], |mut sum, element| {
-            sum.finite_add(element)
-        })
+        to_add
+            .iter()
+            .fold(bitvec![0], |mut sum, element| sum.finite_add(element))
     })
 }
 
@@ -213,17 +244,17 @@ mod tests {
     }
 
     #[test]
-    fn get_n_layers_test() {
+    fn get_n_prime_layers_test() {
         let param: u32 = 3;
-        let layers = get_n_layers(param, 2i32.pow(param) as usize);
+        let layers = get_n_prime_layers(param, 2i32.pow(param) as usize);
         let expected = vec![vec![1, 2, 4], vec![3, 5, 6], vec![0]];
         assert_eq!(layers, expected);
     }
 
     #[test]
-    fn get_n_layers_test_2() {
+    fn get_n_prime_layers_test_2() {
         let param: u32 = 5;
-        let layers = get_n_layers(param, 2i32.pow(param) as usize);
+        let layers = get_n_prime_layers(param, 2i32.pow(param) as usize);
         let expected = vec![
             vec![1, 2, 4, 8, 16],
             vec![3, 6, 12, 17, 24],

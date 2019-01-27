@@ -1,8 +1,9 @@
 #[cfg(test)]
 mod tests {
+    use crate::decoder::Decoder;
     use crate::encoder::Encoder;
     use crate::simple_decoder::SimpleDecoder;
-    use crate::decoder::Decoder;
+    use crate::berlekamp_decoder::BerlekampDecoder;
     use bitvec::*;
 
     #[test]
@@ -28,9 +29,9 @@ mod tests {
         let mut msg = bitvec![1, 0, 0, 1];
         msg.extend(bitvec![0; 3]);
 
-        let prime_poly = bitvec![1,0,0,1,1];
+        let prime_poly = bitvec![1, 0, 0, 1, 1];
 
-        let encoder = Encoder::new(n, k, t, &prime_poly);        
+        let encoder = Encoder::new(n, k, t, &prime_poly);
         let encoded = encoder.encode(&msg).unwrap();
 
         let decoder = SimpleDecoder::new(n, k, t, &prime_poly);
@@ -48,9 +49,9 @@ mod tests {
         let mut msg = bitvec![1, 0, 0, 1];
         msg.extend(bitvec![0; 3]);
 
-        let prime_poly = bitvec![1,0,0,1,1];
+        let prime_poly = bitvec![1, 0, 0, 1, 1];
 
-        let encoder = Encoder::new(n, k, t, &prime_poly);        
+        let encoder = Encoder::new(n, k, t, &prime_poly);
         let mut encoded = encoder.encode(&msg).unwrap();
 
         encoded.set(1, true);
@@ -70,9 +71,9 @@ mod tests {
         let mut msg = bitvec![1, 0, 0, 1];
         msg.extend(bitvec![0; 3]);
 
-        let prime_poly = bitvec![1,0,0,1,1];
+        let prime_poly = bitvec![1, 0, 0, 1, 1];
 
-        let encoder = Encoder::new(n, k, t, &prime_poly);        
+        let encoder = Encoder::new(n, k, t, &prime_poly);
         let mut encoded = encoder.encode(&msg).unwrap();
 
         encoded.set(0, false);
@@ -92,9 +93,9 @@ mod tests {
         let mut msg = bitvec![1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1];
         msg.extend(bitvec![0; 10]);
 
-        let prime_poly = bitvec![1,0,0,1,0,1];
+        let prime_poly = bitvec![1, 0, 0, 1, 0, 1];
 
-        let encoder = Encoder::new(n, k, t, &prime_poly);        
+        let encoder = Encoder::new(n, k, t, &prime_poly);
         let mut encoded = encoder.encode(&msg).unwrap();
 
         encoded.set(0, false);
@@ -112,12 +113,12 @@ mod tests {
         let k = 191;
         let t = 8;
 
-        let mut msg = bitvec![1,0,1,1];
+        let mut msg = bitvec![1, 0, 1, 1];
         msg.extend(bitvec![0; 187]);
 
-        let prime_poly = bitvec![1,0,0,0,1,1,1,0,1];
+        let prime_poly = bitvec![1, 0, 0, 0, 1, 1, 1, 0, 1];
 
-        let encoder = Encoder::new(n, k, t, &prime_poly);        
+        let encoder = Encoder::new(n, k, t, &prime_poly);
         let encoded = encoder.encode(&msg).unwrap();
 
         let decoder = SimpleDecoder::new(n, k, t, &prime_poly);
@@ -133,17 +134,35 @@ mod tests {
         let k = 187;
         let t = 9;
 
-        let mut msg = bitvec![1,0,1,1];
+        let mut msg = bitvec![1, 0, 1, 1];
         msg.extend(bitvec![0; 183]);
 
-        let prime_poly = bitvec![1,0,1,1,0,0,0,1,1];
+        let prime_poly = bitvec![1, 0, 1, 1, 0, 0, 0, 1, 1];
 
-        let encoder = Encoder::new(n, k, t, &prime_poly);        
+        let encoder = Encoder::new(n, k, t, &prime_poly);
         let encoded = encoder.encode(&msg).unwrap();
 
         let decoder = SimpleDecoder::new(n, k, t, &prime_poly);
         let (decoded, _) = decoder.decode(&encoded).unwrap();
 
         assert_eq!(msg, decoded);
+    }
+
+    #[test]
+    fn decode_n31_k16_t3() {
+        let n = 31;
+        let k = 16;
+        let t = 3;
+
+        let mut msg = bitvec![1, 0, 1, 1];
+        msg.extend(bitvec![0; 12]);
+
+        let prime_poly = bitvec![1,0,0,1,0,1];
+
+        let encoder = Encoder::new(n, k, t, &prime_poly);
+        let encoded = encoder.encode(&msg).unwrap();
+
+        let decoder = BerlekampDecoder::new(n, k, t, &prime_poly);
+        let (decoded, _) = decoder.decode(&encoded).unwrap();
     }
 }

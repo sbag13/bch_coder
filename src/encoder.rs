@@ -38,8 +38,8 @@ impl Encoder {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use super::Encoder;
+    use super::*;
 
     #[test]
     fn encode_test() {
