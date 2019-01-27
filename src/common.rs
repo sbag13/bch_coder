@@ -51,7 +51,7 @@ fn create_adding_table(alphas: &Vec<BitVec>) -> Vec<Vec<i32>> {
     adding_table
 }
 
-fn create_gen_pol(degree: u32, t: u32, adding_table: &Vec<Vec<i32>>) -> BitVec {
+pub fn create_gen_pol(degree: u32, t: u32, adding_table: &Vec<Vec<i32>>) -> BitVec {
     let mut min_pols = Vec::new();
     let layers: Vec<Vec<u32>> = get_n_layers(t, adding_table[0].len());
     layers
@@ -115,8 +115,8 @@ fn get_n_layers(n: u32, alphas_len: usize) -> Vec<Vec<u32>> {
     layers
 }
 
-pub fn validate_params(n: i32, k: i32, gen_poly: &BitVec) {
-    if gen_poly.len() == 0 || n != k + gen_poly.len() as i32 - 1 || gen_poly[0] == false {
+pub fn validate_params(n: i32, k: i32, gen_poly: &BitVec, prime_poly: &BitVec) {
+    if gen_poly.len() == 0 || n != k + gen_poly.len() as i32 - 1 || gen_poly[0] == false || prime_poly[0] == false {
         panic!(
             "Bad coder parameters. n: {}, k: {}, gen: {:?}",
             n, k, gen_poly
@@ -124,9 +124,35 @@ pub fn validate_params(n: i32, k: i32, gen_poly: &BitVec) {
     }
 }
 
+pub fn get_gen_poly(degree: i32, t: i32, prime_poly: &BitVec) -> BitVec {
+    let alphas = calculate_alphas(&prime_poly);
+    let adding_table = create_adding_table(&alphas);
+    create_gen_pol(degree as u32, t as u32, &adding_table)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn get_gen_poly_test() {
+        let prime_poly = bitvec![1, 0, 1, 1];
+        let degree = 3;
+        let t = 2;
+        let result = get_gen_poly(degree, t, &prime_poly);
+        let expected = bitvec![1, 1, 1, 1, 1, 1, 1];
+        assert_eq!(result, expected);
+    }
+
+    #[test]
+    fn get_gen_poly_test_2() {
+        let prime_poly = bitvec![1, 0, 1, 1];
+        let degree = 3;
+        let t = 1;
+        let result = get_gen_poly(degree, t, &prime_poly);
+        let expected = bitvec![1, 0, 1, 1];
+        assert_eq!(result, expected);
+    }
 
     #[test]
     fn create_gen_pol_test() {

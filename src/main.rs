@@ -7,10 +7,11 @@ extern crate itertools;
 // const TWO_TO_POWER: usize = 512;
 
 mod common;
-mod coder;
+mod encoder;
 mod bitvec_operations;
 mod decoder;
 mod simple_decoder;
+mod tests;
 
 fn main() {
 }

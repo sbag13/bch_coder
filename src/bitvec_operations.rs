@@ -1,5 +1,10 @@
 use bitvec::*;
 
+// pub trait BCHBitVec {
+//     fn finite_multiply_bitvecs(vec: &Vec<BitVec>) -> BitVec;
+//     fn truncate(vec: BitVec) -> BitVec;
+// } 
+
 pub fn finite_multiply_bitvecs(vec: &Vec<BitVec>) -> BitVec {
     vec.iter().fold(bitvec![1], |folded, pol| {
         let mut to_add: Vec<BitVec> = Vec::new();
@@ -28,7 +33,25 @@ fn truncate(vec: BitVec) -> BitVec {
     }
 }
 
-pub fn remainder_divide(dividend: &BitVec, divisor: &BitVec) -> Result<BitVec, String> {
+pub fn remainder_divide(dividend_orig: &BitVec, divisor_orig: &BitVec) -> Result<BitVec, String> {
+    let mut dividend = dividend_orig.clone();
+    let mut divisor = divisor_orig.clone();
+
+    // truncate preceding zeros
+    // TODO extract to fn
+    loop {
+        if dividend[0] == true {
+            break;
+        }
+        dividend <<= 1;
+    }
+    loop {
+        if divisor[0] == true {
+            break;
+        }
+        divisor <<= 1;
+    }
+
     if divisor.len() == 0 {
         return Err("Division by zero polynomial!".to_owned());
     }
@@ -37,16 +60,17 @@ pub fn remainder_divide(dividend: &BitVec, divisor: &BitVec) -> Result<BitVec, S
     }
 
     let mut remainder: BitVec = dividend.iter().take(divisor.len()).collect();
-    remainder ^= (*divisor).clone();
+    remainder ^= divisor.clone();
 
     for bit in dividend.iter().skip(divisor.len()) {
         remainder <<= 1;
         remainder.push(bit);
         if remainder.get(0) == true {
-            remainder ^= (*divisor).clone();
+            remainder ^= divisor.clone();
         }
     }
-    Ok(truncate(remainder))
+    remainder <<= 1;
+    Ok(remainder)
 }
 
 pub fn shift_cyclic(vec: &mut BitVec, n: i32) {
@@ -98,16 +122,37 @@ mod tests {
     }
 
     #[test]
-    fn remainder_divide_test() {
+    fn remainder_divide_test_1() {  //TODO rename tests
         let dividend = bitvec![1, 1, 0, 0, 1, 1];
         let divisor = bitvec![1, 0, 1, 1];
-        let expected = bitvec![1, 0];
+        let expected = bitvec![0, 1, 0];
         let result = remainder_divide(&dividend, &divisor).unwrap();
         assert_eq!(expected, result);
+    }
 
+    #[test]
+    fn remainder_divide_test_2() {
         let dividend = bitvec![1, 1, 0, 0, 1, 1];
         let divisor = bitvec![1, 1, 0, 1];
         let expected = bitvec![1, 1, 1];
+        let result = remainder_divide(&dividend, &divisor).unwrap();
+        assert_eq!(expected, result);
+    }
+
+    #[test]
+    fn remainder_divide_test_3() {
+        let dividend = bitvec![0, 1, 1, 1, 0, 1, 1];
+        let divisor = bitvec![1, 0, 1, 1];
+        let expected = bitvec![0, 0, 1];
+        let result = remainder_divide(&dividend, &divisor).unwrap();
+        assert_eq!(expected, result);
+    }
+
+    #[test]
+    fn remainder_divide_test_4() {
+        let dividend = bitvec![1, 0, 0, 1, 0, 0, 0];
+        let divisor = bitvec![1, 0, 1, 1];
+        let expected = bitvec![1, 1, 0];
         let result = remainder_divide(&dividend, &divisor).unwrap();
         assert_eq!(expected, result);
     }
