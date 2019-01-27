@@ -1,4 +1,4 @@
-use crate::bitvec_operations;
+use crate::bch_bitvec::*;
 use crate::common;
 use bitvec::*;
 
@@ -10,8 +10,8 @@ pub struct Encoder {
 
 impl Encoder {
     pub fn new(n: i32, k: i32, t: i32, prime_poly: &BitVec) -> Encoder {
-        let degree = n - k;
-        let gen_poly = common::get_gen_poly(degree, t, prime_poly);
+        let prime_poly_degree = prime_poly.len() as i32 - 1;
+        let gen_poly = common::get_gen_poly(prime_poly_degree, t, prime_poly);
         common::validate_params(n, k, &gen_poly, prime_poly);
         Encoder {
             n: n,
@@ -29,7 +29,7 @@ impl Encoder {
         let mut data_clone = data.clone();
         data_clone.extend(bitvec![0; control_len as usize]);
 
-        let division_remainder = bitvec_operations::remainder_divide(&data_clone, &self.gen_poly)?;
+        let division_remainder = data_clone.remainder_divide(&self.gen_poly)?;
         data_clone += division_remainder;
 
         Ok(data_clone)

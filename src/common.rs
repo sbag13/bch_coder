@@ -1,4 +1,4 @@
-use crate::bitvec_operations;
+use crate::bch_bitvec::*;
 use bitvec::*;
 use itertools::Itertools;
 use primes::{is_prime, PrimeSet};
@@ -41,7 +41,7 @@ fn create_adding_table(alphas: &Vec<BitVec>) -> Vec<Vec<i32>> {
             let result_alpha_idx = alphas.iter().position(|alpha| alpha.eq(&alphas_xor));
             match result_alpha_idx {
                 Some(idx) => row_vec.push(idx as i32),
-                None => row_vec.push(-1), // TODO maybe change to Option
+                None => row_vec.push(-1),
             }
         }
 
@@ -51,27 +51,29 @@ fn create_adding_table(alphas: &Vec<BitVec>) -> Vec<Vec<i32>> {
     adding_table
 }
 
-pub fn create_gen_pol(degree: u32, t: u32, adding_table: &Vec<Vec<i32>>) -> BitVec {
+fn create_gen_pol(degree: u32, t: u32, adding_table: &Vec<Vec<i32>>) -> BitVec {
     let mut min_pols = Vec::new();
     let layers: Vec<Vec<u32>> = get_n_layers(t, adding_table[0].len());
     layers
         .iter()
-        .for_each(|layer| min_pols.push(calculate_layer_min_pol(layer, degree, adding_table)));
-
-    bitvec_operations::finite_multiply_bitvecs(&min_pols)
+        .for_each(|layer| {
+            min_pols.push(calculate_layer_min_pol(layer, adding_table));
+        });
+    finite_multiply_bitvecs_vec(&min_pols)
 }
 
-fn calculate_layer_min_pol(layer: &Vec<u32>, degree: u32, adding_table: &Vec<Vec<i32>>) -> BitVec {
-    let mut min_pol = bitvec![0; (degree + 1) as usize];
+fn calculate_layer_min_pol(layer: &Vec<u32>, adding_table: &Vec<Vec<i32>>) -> BitVec {
+    let layer_degree = layer.len() as u32;
+    let mut min_pol = bitvec![0; (layer_degree + 1) as usize];
     min_pol.set(0, true);
-    min_pol.set(degree as usize, true);
+    min_pol.set(layer_degree as usize, true);
 
-    for idx in 1..degree {
+    for idx in 1..layer_degree {
         let combinations = layer.iter().combinations(idx as usize).collect_vec();
         let coefficient = combinations.iter().fold(-1, |sum, combination| {
             let alpha = combination
                 .iter()
-                .fold(0, |sum, &&alpha| (sum + alpha) % (2u32.pow(degree) - 1));
+                .fold(0, |sum, &&alpha| (sum + alpha) % (2u32.pow(layer_degree) - 1));
             if sum != -1i32 {
                 return adding_table[sum as usize][alpha as usize];
             } else {
@@ -82,7 +84,6 @@ fn calculate_layer_min_pol(layer: &Vec<u32>, degree: u32, adding_table: &Vec<Vec
             min_pol.set(idx as usize, true);
         }
     }
-
     min_pol
 }
 
@@ -128,6 +129,22 @@ pub fn get_gen_poly(degree: i32, t: i32, prime_poly: &BitVec) -> BitVec {
     let alphas = calculate_alphas(&prime_poly);
     let adding_table = create_adding_table(&alphas);
     create_gen_pol(degree as u32, t as u32, &adding_table)
+}
+
+pub fn finite_multiply_bitvecs_vec(vec: &Vec<BitVec>) -> BitVec {
+    vec.iter().fold(bitvec![1], |folded, pol| {
+        let mut to_add: Vec<BitVec> = Vec::new();
+        for (i, bit) in pol.iter().rev().enumerate() {
+            if bit == true {
+                let mut elem: BitVec = folded.clone();
+                elem.extend(bitvec![0;i]);
+                to_add.push(elem);
+            }
+        }
+        to_add.iter().fold(bitvec![0], |mut sum, element| {
+            sum.finite_add(element)
+        })
+    })
 }
 
 #[cfg(test)]
@@ -215,5 +232,13 @@ mod tests {
             vec![11, 13, 21, 22, 26],
         ];
         assert_eq!(layers, expected);
+    }
+
+    #[test]
+    fn finite_multiply_bitvecs_test() {
+        let to_multiply = vec![bitvec![1, 0, 1, 1, 0], bitvec![1, 1, 0, 1], bitvec![1, 1]];
+        let expected = bitvec![1, 0, 0, 0, 0, 0, 0, 1, 0];
+        let result = finite_multiply_bitvecs_vec(&to_multiply);
+        assert_eq!(expected, result);
     }
 }

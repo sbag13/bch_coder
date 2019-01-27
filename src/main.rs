@@ -8,7 +8,7 @@ extern crate itertools;
 
 mod common;
 mod encoder;
-mod bitvec_operations;
+mod bch_bitvec;
 mod decoder;
 mod simple_decoder;
 mod tests;
@@ -18,9 +18,7 @@ fn main() {
 
 
 //TODO 
-// can extract bitvec_operations to trait !!!!!!!
 // add comments to doc, maybe
-// gruby refactor
 
 // Pytania 
-// jakie są errory?
+// czy zwracać errory

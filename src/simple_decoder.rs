@@ -1,4 +1,4 @@
-use crate::bitvec_operations::*;
+use crate::bch_bitvec::*;
 use crate::common;
 use crate::decoder::*;
 use bitvec::*;
@@ -12,8 +12,8 @@ pub struct SimpleDecoder {
 
 impl SimpleDecoder {
     pub fn new(n: i32, k: i32, t: i32, prime_poly: &BitVec) -> SimpleDecoder {
-        let degree = n - k;
-        let gen_poly = common::get_gen_poly(degree, t, prime_poly);
+        let prime_degree = prime_poly.len() as i32 - 1;
+        let gen_poly = common::get_gen_poly(prime_degree, t, prime_poly);
         common::validate_params(n, k, &gen_poly, prime_poly);
         SimpleDecoder {
             n: n,
@@ -33,32 +33,24 @@ impl Decoder for SimpleDecoder {
         let mut encoded_clone = encoded.clone();
 
         for i in 0..self.n {
-            println!("encoded {}", encoded_clone);
-            let mut syndrome = remainder_divide(&encoded_clone, &self.gen_poly)?;
-            syndrome >>= self.n - self.k - syndrome.len() as i32; //TODO polacz to 
-
-            println!("syndrome {}", syndrome);
+            let syndrome = encoded_clone.remainder_divide(&self.gen_poly)?;
 
             let hamming_weight = syndrome.count_ones();
-            println!("h_weight {}", hamming_weight);
             if hamming_weight <= self.t as usize {
-                let mut extended_syndrom = bitvec![0; encoded_clone.len() - syndrome.len()];    //TODO i to, mochnacki 2.4.4
-                extended_syndrom.extend(syndrome.clone());
-                println!("extended syndrome {}", extended_syndrom);
+                let mut extended_syndrome = syndrome.clone();
+                extended_syndrome.precede_with_zeros(encoded_clone.len() - syndrome.len());    // mochnacki 2.4.4
 
-                let mut corrected = encoded_clone ^ extended_syndrom;
-                println!("corrected {}", corrected);
+                let mut corrected = encoded_clone ^ extended_syndrome;
 
-                shift_cyclic(&mut corrected, -i);
+                corrected.shift_cyclic(-i);
                 let decoded = corrected.iter().take(self.k as usize).collect();
-                println!("decoded {}", decoded);
 
                 let mut error = syndrome;
-                shift_cyclic(&mut error, -i);
+                error.shift_cyclic(-i);
 
                 return Ok((decoded, error));
             }
-            shift_cyclic(&mut encoded_clone, 1);
+            encoded_clone.shift_cyclic(1);
         }
 
         Err("Could not decode".to_owned())
