@@ -1,11 +1,9 @@
-use crate::encoder::Encoder;
-use crate::simple_decoder::SimpleDecoder;
-use crate::decoder::Decoder;
-use bitvec::*;
-
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use crate::encoder::Encoder;
+    use crate::simple_decoder::SimpleDecoder;
+    use crate::decoder::Decoder;
+    use bitvec::*;
 
     #[test]
     fn encode_decode_n7_k4_t1_test() {
@@ -86,7 +84,7 @@ mod tests {
     }
 
     #[test]
-    fn encode_decode_with_double_error_decodable_by_simple_decoder_n31_k21_t2_test() {
+    fn encode_decode_with_double_error_not_decodable_by_simple_decoder_n31_k21_t2_test() {
         let n = 31;
         let k = 21;
         let t = 2;
@@ -108,6 +106,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore]
     fn encode_decode_without_errors_n255_k191_t8_test_full_layers() {
         let n = 255;
         let k = 191;
@@ -128,6 +127,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore]
     fn encode_decode_without_errors_n255_k187_t9_test_not_full_layers() {
         let n = 255;
         let k = 187;
