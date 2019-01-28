@@ -128,7 +128,7 @@ mod tests {
     }
 
     #[test]
-    // #[ignore]
+    #[ignore]
     fn encode_decode_without_errors_n255_k191_t8_test_full_layers() {
         let n = 255;
         let k = 191;
@@ -142,17 +142,17 @@ mod tests {
         let encoder = Encoder::new(n, k, t, &prime_poly);
         let encoded = encoder.encode(&msg).unwrap();
 
-        // let decoder = SimpleDecoder::new(n, k, t, &prime_poly);
-        // let (decoded, _) = decoder.decode(&encoded).unwrap();
-        // assert_eq!(msg, decoded);
+        let decoder = SimpleDecoder::new(n, k, t, &prime_poly);
+        let (decoded, _) = decoder.decode(&encoded).unwrap();
+        assert_eq!(msg, decoded);
 
-        // let decoder = BerlekampDecoder::new(n, k, t, &prime_poly);
-        // let (decoded, _) = decoder.decode(&encoded).unwrap();
-        // assert_eq!(decoded, msg);
+        let decoder = BerlekampDecoder::new(n, k, t, &prime_poly);
+        let (decoded, _) = decoder.decode(&encoded).unwrap();
+        assert_eq!(decoded, msg);
     }
 
     #[test]
-    // #[ignore]
+    #[ignore]
     fn encode_decode_without_errors_n255_k187_t9_test_not_full_layers() {
         let n = 255;
         let k = 187;
@@ -170,9 +170,9 @@ mod tests {
         let (decoded, _) = decoder.decode(&encoded).unwrap();
         assert_eq!(msg, decoded);
 
-        // let decoder = BerlekampDecoder::new(n, k, t, &prime_poly);
-        // let (decoded, _) = decoder.decode(&encoded).unwrap();
-        // assert_eq!(decoded, msg);
+        let decoder = BerlekampDecoder::new(n, k, t, &prime_poly);
+        let (decoded, _) = decoder.decode(&encoded).unwrap();
+        assert_eq!(decoded, msg);
     }
 
     #[test]

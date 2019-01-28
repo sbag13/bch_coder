@@ -54,7 +54,7 @@ fn create_adding_table(alphas: &Vec<BitVec>) -> Vec<Vec<i32>> {
 
 fn create_gen_pol(degree: u32, t: u32, adding_table: &Vec<Vec<i32>>) -> BitVec {
     let mut min_pols = Vec::new();
-    let layers: Vec<Vec<u32>> = get_n_prime_layers(t, adding_table[0].len());
+    let layers: Vec<Vec<u32>> = get_n_disjunctive_layers(t, adding_table[0].len());
     layers.iter().for_each(|layer| {
         min_pols.push(calculate_layer_min_pol(layer, adding_table));
     });
@@ -108,34 +108,29 @@ pub fn get_n_first_layers(n: u32, alphas_len: usize) -> Vec<Vec<u32>> {
     layers
 }
 
-fn get_n_prime_layers(n: u32, alphas_len: usize) -> Vec<Vec<u32>> {
+fn get_n_disjunctive_layers(n: u32, alphas_len: usize) -> Vec<Vec<u32>> {
     //TODO to doc: layers start with prime powers
     let mut layers: Vec<Vec<u32>> = Vec::new();
-    let mut prime_set = PrimeSet::new();
-    let mut first_primes: VecDeque<u64> = prime_set.iter().take(alphas_len).collect();
-    first_primes.push_front(1);
+
+    let mut start_numbers: VecDeque<u32> = VecDeque::new();
+    for i in 0..(alphas_len / 2) as usize {
+        start_numbers.push_back(1 + i as u32 * 2);
+    }
 
     for _i in 0..n {
         let mut layer: Vec<u32> = Vec::new();
-        layer.push(first_primes.pop_front().unwrap() as u32 % (alphas_len - 1) as u32);
-
+        layer.push(start_numbers.pop_front().unwrap() % (alphas_len as u32 - 1));
         loop {
-            let candidate =
-                (*layer.iter_mut().last().unwrap() * 2) as u32 % (alphas_len - 1) as u32;
+            let candidate = (layer.iter().last().unwrap() * 2) % (alphas_len as u32 - 1);
             if layer.contains(&candidate) {
                 layer.sort();
                 layers.push(layer);
                 break;
             } else {
-                if is_prime(candidate as u64) {
-                    first_primes.retain(|&item| item as u32 != candidate);;
-                }
                 layer.push(candidate);
+                start_numbers.retain(|n| *n != candidate);
             }
         }
-    }
-    for l in layers.clone() {    //TODO remove
-        println!("{:?}", l);
     }
     layers
 }
@@ -254,17 +249,17 @@ mod tests {
     }
 
     #[test]
-    fn get_n_prime_layers_test() {
+    fn get_n_disjunctive_layers_test() {
         let param: u32 = 3;
-        let layers = get_n_prime_layers(param, 2i32.pow(param) as usize);
+        let layers = get_n_disjunctive_layers(param, 2i32.pow(param) as usize);
         let expected = vec![vec![1, 2, 4], vec![3, 5, 6], vec![0]];
         assert_eq!(layers, expected);
     }
 
     #[test]
-    fn get_n_prime_layers_test_2() {
+    fn get_n_disjunctive_layers_test_2() {
         let param: u32 = 5;
-        let layers = get_n_prime_layers(param, 2i32.pow(param) as usize);
+        let layers = get_n_disjunctive_layers(param, 2i32.pow(param) as usize);
         let expected = vec![
             vec![1, 2, 4, 8, 16],
             vec![3, 6, 12, 17, 24],
