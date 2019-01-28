@@ -3,6 +3,7 @@ use bitvec::*;
 pub trait BCHBitVec {
     fn finite_add(&self, vec: &BitVec) -> BitVec;
     fn truncate_preceding_zeros(&mut self);
+    fn inverse_nth(&mut self, n: usize); //TODO not safe
     fn precede_with_zeros(&mut self, n: usize);
     fn remainder_divide(&self, divisor_orig: &BitVec) -> Result<BitVec, String>;
     fn shift_cyclic(&mut self, n: i32); //TODO to doc: negatives shift rights, positives shift left
@@ -19,6 +20,14 @@ impl BCHBitVec for BitVec {
         }
 
         self_clone ^ vec_clone
+    }
+
+    fn inverse_nth(&mut self, n: usize) {
+        if self.get(n) == false {
+            self.set(n, true);
+        } else {
+            self.set(n, false);
+        }
     }
 
     fn truncate_preceding_zeros(&mut self) {
@@ -181,5 +190,13 @@ mod tests {
         let expected = bitvec![];
         vec.truncate_preceding_zeros();
         assert_eq!(expected, vec);
+    }
+
+    #[test]
+    fn inverse_nth_test() {
+        let mut vec = bitvec![1, 0, 1];
+        vec.inverse_nth(0);
+        vec.inverse_nth(1);
+        assert_eq!(vec, bitvec![0, 1, 1]);
     }
 }

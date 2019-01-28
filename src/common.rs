@@ -134,13 +134,15 @@ fn get_n_prime_layers(n: u32, alphas_len: usize) -> Vec<Vec<u32>> {
             }
         }
     }
-
+    for l in layers.clone() {    //TODO remove
+        println!("{:?}", l);
+    }
     layers
 }
 
 pub fn validate_params(n: i32, k: i32, gen_poly: &BitVec, prime_poly: &BitVec) {
     if gen_poly.len() == 0
-        || n != k + gen_poly.len() as i32 - 1
+        // || n != k + gen_poly.len() as i32 - 1
         || gen_poly[0] == false
         || prime_poly[0] == false
     {

@@ -176,22 +176,46 @@ impl BerlekampDecoder {
         }
         longer
     }
+
+    fn find_roots(&self, poly: &Vec<i32>) -> Vec<i32> {
+        let mut roots = Vec::new();
+        for i in 1..(self.n + 1) {
+            let mut mul_alphas_and_x = Vec::new();
+            for (j, alpha) in poly.iter().rev().enumerate() {
+                mul_alphas_and_x.push(self.alpha_mod_n(alpha + (i * j as i32)));
+            }
+            if mul_alphas_and_x
+                .iter()
+                .fold(-1, |sum, alpha| self.add_alphas(sum, *alpha))
+                == -1
+            {
+                roots.push(i);
+            }
+        }
+        roots
+    }
 }
 
 impl Decoder for BerlekampDecoder {
     fn decode(self, encoded: &BitVec) -> Result<(BitVec, BitVec), String> {
         let syndroms = self.compute_syndroms(encoded);
+        if syndroms.iter().all(|syndrome| !syndrome.any()) {
+            return Ok((
+                encoded.iter().take(self.k as usize).collect(),
+                encoded.iter().skip(self.k as usize).collect(),
+            ));
+        }
         let syndroms_alphas = self.get_syndroms_alphas(&syndroms);
 
         let (us, mut sigmas, mut dus, mut lus, mut dulus) = self.init_table(syndroms_alphas[0]);
 
         let mut u_idx: usize = 1;
         loop {
-            println_layers(u_idx as i32 + 1, &us, &sigmas, &dus, &lus, &dulus);
-
             let u = us[u_idx];
-            if dus[u as usize] == -1 {
-
+            let next_sigma;
+            if dus[u_idx] == -1 {
+                next_sigma = sigmas[u_idx].clone();
+                sigmas.push(next_sigma.clone());
             } else {
                 let most_positive_dulu_idx = self.find_dulu_idx(&dus, &dulus);
                 let up = us[most_positive_dulu_idx];
@@ -209,60 +233,72 @@ impl Decoder for BerlekampDecoder {
 
                 let x_poly_sigma_p =
                     self.multiply_sigma_by_alpha_with_x(&sigma_p, x_power, x_alpha);
-                let next_sigma = self.add_to_sigma(sigma_u, x_poly_sigma_p);
+                next_sigma = self.add_to_sigma(sigma_u, x_poly_sigma_p);
                 sigmas.push(next_sigma.clone());
-
-                if u as i32 + 1 == self.t {
-                    break;
-                }
-
-                let next_lu = next_sigma.len() as i32 - 1;
-                let next_dulu = 2 * (u as i32 + 1) - next_lu;
-                lus.push(next_lu);
-                dulus.push(next_dulu);
-
-                let L = lus[u_idx] + 1;
-                let mut alphas_to_add = Vec::new();
-                for i in 0..(L + 1) {
-                    if i == 0 {
-                        alphas_to_add.push(syndroms_alphas[2 * u as usize + 2]); //TODO maybe f32
-                    } else {
-                        alphas_to_add.push(self.alpha_mod_n(
-                            syndroms_alphas[2 * u as usize + 2 - i as usize]
-                                + next_sigma.iter().rev().nth(i as usize).unwrap(),
-                        ));
-                    }
-                }
-                let next_du = alphas_to_add
-                    .iter()
-                    .fold(-1, |sum, alpha| self.add_alphas(sum, *alpha));
-                dus.push(next_du);
             }
+
+            if u as i32 + 1 == self.t {
+                break;
+            }
+
+            let next_lu = next_sigma.len() as i32 - 1;
+            let next_dulu = 2 * (u as i32 + 1) - next_lu;
+            lus.push(next_lu);
+            dulus.push(next_dulu);
+
+            let L = lus[u_idx] + 1;
+            let mut alphas_to_add = Vec::new();
+            for i in 0..(L + 1) {
+                if i == 0 {
+                    alphas_to_add.push(syndroms_alphas[2 * u as usize + 2]); //TODO maybe f32
+                } else {
+                    alphas_to_add.push(self.alpha_mod_n(
+                        syndroms_alphas[2 * u as usize + 2 - i as usize]
+                            + next_sigma.iter().rev().nth(i as usize).unwrap(),
+                    ));
+                }
+            }
+
+            let next_du = alphas_to_add
+                .iter()
+                .fold(-1, |sum, alpha| self.add_alphas(sum, *alpha));
+            dus.push(next_du);
+
             u_idx += 1;
         }
 
-        println!("last sigma {:?}", sigmas.iter().last().unwrap());
         let final_err_locator_poly = sigmas.iter().last().unwrap();
-        unimplemented!()
+        let roots = self.find_roots(final_err_locator_poly);
+        if roots.len() as i32 > self.t {
+            return Err("Too many errors. Could not decode".to_owned());
+        }
+        let mut decoded = encoded.clone();
+        for root in roots {
+            decoded.inverse_nth(root as usize - 1);
+        }
+        return Ok((
+            decoded.iter().take(self.k as usize).collect(),
+            decoded.iter().skip(self.k as usize).collect(),
+        ));
     }
 }
 
-fn println_layers(
-    n: i32,
-    us: &Vec<f32>,
-    sigmas: &Vec<Vec<i32>>,
-    dus: &Vec<i32>,
-    lus: &Vec<i32>,
-    dulus: &Vec<i32>,
-) {
-    for i in 0..n as usize {
-        println!(
-            "{} {:?} {} {} {} ",
-            us[i], sigmas[i], dus[i], lus[i], dulus[i]
-        );
-    }
-    println!("###");
-}
+// fn println_layers(   //TODO remove
+//     n: i32,
+//     us: &Vec<f32>,
+//     sigmas: &Vec<Vec<i32>>,
+//     dus: &Vec<i32>,
+//     lus: &Vec<i32>,
+//     dulus: &Vec<i32>,
+// ) {
+//     for i in 0..n as usize {
+//         println!(
+//             "{} {:?} {} {} {} ",
+//             us[i], sigmas[i], dus[i], lus[i], dulus[i]
+//         );
+//     }
+//     println!("###");
+// }
 
 #[cfg(test)]
 mod tests {
@@ -288,10 +324,17 @@ mod tests {
     #[test]
     fn add_to_sigma_test() {
         let decoder = BerlekampDecoder::new(31, 16, 3, &bitvec![1, 0, 0, 1, 0, 1]);
-
         let sigma = vec![24, 2, 0];
         let to_add = vec![27, 25, -1, -1];
         let result = decoder.add_to_sigma(sigma, to_add);
         assert_eq!(result, vec![27, 11, 2, 0]);
+    }
+
+    #[test]
+    fn find_roots_test() {
+        let decoder = BerlekampDecoder::new(31, 16, 3, &bitvec![1, 0, 0, 1, 0, 1]);
+        let poly = vec![27, 11, 2, 0];
+        let result = decoder.find_roots(&poly);
+        assert_eq!(result, vec![4, 9, 22]);
     }
 }

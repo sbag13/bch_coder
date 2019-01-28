@@ -8,15 +8,22 @@ mod tests {
 
     #[test]
     fn encode_decode_n7_k4_t1_test() {
+        let n = 7;
+        let k = 4;
+        let t = 1;
+
         let msg = bitvec![1, 0, 0, 1];
         let prime_poly = bitvec![1, 0, 1, 1];
 
         let encoder = Encoder::new(7, 4, 1, &prime_poly);
         let encoded = encoder.encode(&msg).unwrap();
 
-        let decoder = SimpleDecoder::new(7, 4, 1, &prime_poly);
+        let decoder = SimpleDecoder::new(n, k, t, &prime_poly);
         let (decoded, _) = decoder.decode(&encoded).unwrap();
+        assert_eq!(decoded, msg);
 
+        let decoder = BerlekampDecoder::new(n, k, t, &prime_poly);
+        let (decoded, _) = decoder.decode(&encoded).unwrap();
         assert_eq!(decoded, msg);
     }
 
@@ -36,8 +43,11 @@ mod tests {
 
         let decoder = SimpleDecoder::new(n, k, t, &prime_poly);
         let (decoded, _) = decoder.decode(&encoded).unwrap();
-
         assert_eq!(msg, decoded);
+
+        let decoder = BerlekampDecoder::new(n, k, t, &prime_poly);
+        let (decoded, _) = decoder.decode(&encoded).unwrap();
+        assert_eq!(decoded, msg);
     }
 
     #[test]
@@ -58,8 +68,11 @@ mod tests {
 
         let decoder = SimpleDecoder::new(n, k, t, &prime_poly);
         let (decoded, _) = decoder.decode(&encoded).unwrap();
-
         assert_eq!(msg, decoded);
+
+        let decoder = BerlekampDecoder::new(n, k, t, &prime_poly);
+        let (decoded, _) = decoder.decode(&encoded).unwrap();
+        assert_eq!(decoded, msg);
     }
 
     #[test]
@@ -82,6 +95,10 @@ mod tests {
         let decoder = SimpleDecoder::new(n, k, t, &prime_poly);
         let (decoded, _) = decoder.decode(&encoded).unwrap();
         assert_eq!(msg, decoded);
+
+        let decoder = BerlekampDecoder::new(n, k, t, &prime_poly);
+        let (decoded, _) = decoder.decode(&encoded).unwrap();
+        assert_eq!(decoded, msg);
     }
 
     #[test]
@@ -104,10 +121,14 @@ mod tests {
         let decoder = SimpleDecoder::new(n, k, t, &prime_poly);
         let result = decoder.decode(&encoded);
         assert_eq!(result.is_err(), true);
+
+        let decoder = BerlekampDecoder::new(n, k, t, &prime_poly);
+        let (decoded, _) = decoder.decode(&encoded).unwrap();
+        assert_eq!(decoded, msg);
     }
 
     #[test]
-    #[ignore]
+    // #[ignore]
     fn encode_decode_without_errors_n255_k191_t8_test_full_layers() {
         let n = 255;
         let k = 191;
@@ -116,19 +137,22 @@ mod tests {
         let mut msg = bitvec![1, 0, 1, 1];
         msg.extend(bitvec![0; 187]);
 
-        let prime_poly = bitvec![1, 0, 0, 0, 1, 1, 1, 0, 1];
+        let prime_poly = bitvec![1,0,1,1,0,1,0,0,1];
 
         let encoder = Encoder::new(n, k, t, &prime_poly);
         let encoded = encoder.encode(&msg).unwrap();
 
-        let decoder = SimpleDecoder::new(n, k, t, &prime_poly);
-        let (decoded, _) = decoder.decode(&encoded).unwrap();
+        // let decoder = SimpleDecoder::new(n, k, t, &prime_poly);
+        // let (decoded, _) = decoder.decode(&encoded).unwrap();
+        // assert_eq!(msg, decoded);
 
-        assert_eq!(msg, decoded);
+        // let decoder = BerlekampDecoder::new(n, k, t, &prime_poly);
+        // let (decoded, _) = decoder.decode(&encoded).unwrap();
+        // assert_eq!(decoded, msg);
     }
 
     #[test]
-    #[ignore]
+    // #[ignore]
     fn encode_decode_without_errors_n255_k187_t9_test_not_full_layers() {
         let n = 255;
         let k = 187;
@@ -144,12 +168,15 @@ mod tests {
 
         let decoder = SimpleDecoder::new(n, k, t, &prime_poly);
         let (decoded, _) = decoder.decode(&encoded).unwrap();
-
         assert_eq!(msg, decoded);
+
+        // let decoder = BerlekampDecoder::new(n, k, t, &prime_poly);
+        // let (decoded, _) = decoder.decode(&encoded).unwrap();
+        // assert_eq!(decoded, msg);
     }
 
     #[test]
-    fn decode_n31_k16_t3() {
+    fn decode_with_3_errors_n31_k16_t3() {
         let n = 31;
         let k = 16;
         let t = 3;
@@ -158,6 +185,8 @@ mod tests {
             0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 1, 0, 0, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0,
             1, 0
         ];
+        let msg_only = bitvec![0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1];
+        let remainder_only = bitvec![1, 0, 0, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0];
 
         let prime_poly = bitvec![1, 0, 0, 1, 0, 1];
 
@@ -165,10 +194,55 @@ mod tests {
             0, 0, 0, 1, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 1, 1, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0,
             1, 0
         ];
-        // let encoder = Encoder::new(n, k, t, &prime_poly);
-        // let encoded = encoder.encode(&msg).unwrap();
 
         let decoder = BerlekampDecoder::new(n, k, t, &prime_poly);
-        let (decoded, _) = decoder.decode(&encoded).unwrap();
+        let (decoded, remainder) = decoder.decode(&encoded).unwrap(); //TODO remainder can be removed
+        assert_eq!(decoded, msg_only);
+        assert_eq!(remainder, remainder_only);
+    }
+
+    #[test]
+    fn decode_without_errors_n31_k16_t3() {
+        let n = 31;
+        let k = 16;
+        let t = 3;
+
+        let mut msg = bitvec![
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 1, 0, 0, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0,
+            1, 0
+        ];
+        let msg_only = bitvec![0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1];
+        let remainder_only = bitvec![1, 0, 0, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0];
+
+        let prime_poly = bitvec![1, 0, 0, 1, 0, 1];
+
+        let decoder = BerlekampDecoder::new(n, k, t, &prime_poly);
+        let (decoded, remainder) = decoder.decode(&msg).unwrap(); //TODO remainder can be removed
+        assert_eq!(decoded, msg_only);
+        assert_eq!(remainder, remainder_only);
+    }
+
+    fn decode_with_4_errors_should_fail_n31_k16_t3() {
+        let n = 31;
+        let k = 16;
+        let t = 3;
+
+        let mut msg = bitvec![
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 1, 0, 0, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0,
+            1, 0
+        ];
+        let msg_only = bitvec![0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1];
+        let remainder_only = bitvec![1, 0, 0, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0];
+
+        let prime_poly = bitvec![1, 0, 0, 1, 0, 1];
+
+        let encoded = bitvec![
+            0, 0, 0, 1, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 1, 1, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 1,
+            1, 0
+        ];
+
+        let decoder = BerlekampDecoder::new(n, k, t, &prime_poly);
+        let result = decoder.decode(&encoded); //TODO remainder can be removed
+        assert!(result.is_err());
     }
 }
