@@ -8,11 +8,11 @@ extern crate log;
 // const TWO_TO_POWER: usize = 512;
 
 mod bch_bitvec;
+mod berlekamp_decoder;
 mod common;
 mod decoder;
 mod encoder;
 mod simple_decoder;
-mod berlekamp_decoder;
 mod tests;
 
 fn main() {}

@@ -28,6 +28,7 @@ fn calculate_alphas(prime_polynomial: &BitVec) -> Vec<BitVec> {
 }
 
 fn create_adding_table(alphas: &Vec<BitVec>) -> Vec<Vec<i32>> {
+    //TODO to doc: organization of table
     let mut adding_table: Vec<Vec<i32>> = Vec::new();
     let alphas_size: usize = alphas.len();
 
@@ -92,7 +93,8 @@ pub fn get_n_first_layers(n: u32, alphas_len: usize) -> Vec<Vec<u32>> {
         let mut layer = Vec::new();
         layer.push(i);
         loop {
-            let candidate_alpha = (*layer.iter_mut().last().unwrap() * 2) as u32 % (alphas_len - 1) as u32;
+            let candidate_alpha =
+                (*layer.iter_mut().last().unwrap() * 2) as u32 % (alphas_len - 1) as u32;
             if layer.contains(&candidate_alpha) {
                 layer.sort();
                 layers.push(layer);
@@ -149,13 +151,19 @@ pub fn validate_params(n: i32, k: i32, gen_poly: &BitVec, prime_poly: &BitVec) {
     }
 }
 
-pub fn get_gen_poly(degree: i32, t: i32, prime_poly: &BitVec) -> BitVec {   //TODO move to classes
+pub fn get_gen_poly(degree: i32, t: i32, prime_poly: &BitVec) -> BitVec {
+    //TODO move to classes
     let alphas = calculate_alphas(&prime_poly);
     let adding_table = create_adding_table(&alphas);
     create_gen_pol(degree as u32, t as u32, &adding_table)
 }
 
-pub fn get_gen_poly_and_adding_table(degree: i32, t: i32, prime_poly: &BitVec) -> (BitVec, Vec<Vec<i32>>) {   //TODO move to classes
+pub fn get_gen_poly_and_adding_table(
+    degree: i32,
+    t: i32,
+    prime_poly: &BitVec,
+) -> (BitVec, Vec<Vec<i32>>) {
+    //TODO move to classes
     let alphas = calculate_alphas(&prime_poly);
     let adding_table = create_adding_table(&alphas);
     let gen_poly = create_gen_pol(degree as u32, t as u32, &adding_table);
