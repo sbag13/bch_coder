@@ -20,6 +20,14 @@ impl Encoder {
         }
     }
 
+    pub fn new_with_gen_poly(n: i32, k: i32, t: i32, gen_poly: BitVec) -> Encoder {    //TODO validate or load from file
+        Encoder {
+            n: n,
+            k: k,
+            gen_poly: gen_poly,
+        }
+    }
+
     pub fn encode(self, data: &BitVec) -> Result<BitVec, String> {
         if data.len() as i32 > self.k {
             return Err("Encode: to long data!".to_owned());

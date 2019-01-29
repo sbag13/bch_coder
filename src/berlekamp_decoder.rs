@@ -3,6 +3,7 @@ use crate::common;
 use crate::decoder::*;
 use bitvec::*;
 
+#[derive(Clone)]
 pub struct BerlekampDecoder {
     n: i32,
     k: i32,
@@ -16,7 +17,18 @@ impl BerlekampDecoder {
         let prime_degree = prime_poly.len() as i32 - 1;
         let (gen_poly, adding_table) =
             common::get_gen_poly_and_adding_table(prime_degree, t, prime_poly);
+        println!("g {:?}", gen_poly);
         common::validate_params(n, k, &gen_poly, prime_poly);
+        BerlekampDecoder {
+            n: n,
+            k: k,
+            t: t,
+            gen_poly: gen_poly,
+            adding_table: adding_table,
+        }
+    }
+
+    pub fn new_with_gen_poly(n: i32, k: i32, t: i32, gen_poly: BitVec, adding_table: Vec<Vec<i32>>) -> BerlekampDecoder {    //TODO validate or load from file
         BerlekampDecoder {
             n: n,
             k: k,
@@ -197,7 +209,7 @@ impl BerlekampDecoder {
 }
 
 impl Decoder for BerlekampDecoder {
-    fn decode(self, encoded: &BitVec) -> Result<(BitVec, BitVec), String> {
+    fn decode(&self, encoded: &BitVec) -> Result<(BitVec, BitVec), String> {
         let syndroms = self.compute_syndroms(encoded);
         if syndroms.iter().all(|syndrome| !syndrome.any()) {
             return Ok((
@@ -212,6 +224,7 @@ impl Decoder for BerlekampDecoder {
         let mut u_idx: usize = 1;
         loop {
             let u = us[u_idx];
+
             let next_sigma;
             if dus[u_idx] == -1 {
                 next_sigma = sigmas[u_idx].clone();
@@ -246,7 +259,7 @@ impl Decoder for BerlekampDecoder {
             lus.push(next_lu);
             dulus.push(next_dulu);
 
-            let L = lus[u_idx] + 1;
+            let L = next_lu;
             let mut alphas_to_add = Vec::new();
             for i in 0..(L + 1) {
                 if i == 0 {
@@ -267,12 +280,15 @@ impl Decoder for BerlekampDecoder {
             u_idx += 1;
         }
 
+        println!("after");
+
         let final_err_locator_poly = sigmas.iter().last().unwrap();
         let roots = self.find_roots(final_err_locator_poly);
         if roots.len() as i32 > self.t {
             return Err("Too many errors. Could not decode".to_owned());
         }
         let mut decoded = encoded.clone();
+        println!("roots: {:?}", roots);
         for root in roots {
             decoded.inverse_nth(root as usize - 1);
         }

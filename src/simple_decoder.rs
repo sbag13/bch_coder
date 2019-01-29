@@ -3,6 +3,7 @@ use crate::common;
 use crate::decoder::*;
 use bitvec::*;
 
+#[derive(Clone)]
 pub struct SimpleDecoder {
     n: i32,
     k: i32,
@@ -22,10 +23,19 @@ impl SimpleDecoder {
             gen_poly: gen_poly,
         }
     }
+
+    pub fn new_with_gen_poly(n: i32, k: i32, t: i32, gen_poly: BitVec) -> SimpleDecoder {    //TODO validate or load from file
+        SimpleDecoder {
+            n: n,
+            k: k,
+            t: t,
+            gen_poly: gen_poly,
+        }
+    }
 }
 
 impl Decoder for SimpleDecoder {
-    fn decode(self, encoded: &BitVec) -> Result<(BitVec, BitVec), String> {
+    fn decode(&self, encoded: &BitVec) -> Result<(BitVec, BitVec), String> {
         if encoded.len() > self.n as usize {
             return Err("Encoded data is too long!".to_owned());
         }
