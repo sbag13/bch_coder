@@ -118,6 +118,9 @@ fn get_n_disjunctive_layers(n: u32, alphas_len: usize) -> Vec<Vec<u32>> {
     }
 
     for _i in 0..n {
+        if *start_numbers.front().unwrap() > 2 * n {
+            break;
+        }
         let mut layer: Vec<u32> = Vec::new();
         layer.push(start_numbers.pop_front().unwrap() % (alphas_len as u32 - 1));
         loop {
@@ -152,7 +155,8 @@ pub fn get_gen_poly(degree: i32, t: i32, prime_poly: &BitVec) -> BitVec {
     //TODO move to classes
     let alphas = calculate_alphas(&prime_poly);
     let adding_table = create_adding_table(&alphas);
-    create_gen_pol(degree as u32, t as u32, &adding_table)
+    let gen_poly = create_gen_pol(degree as u32, t as u32, &adding_table);
+    gen_poly
 }
 
 pub fn get_gen_poly_and_adding_table(
@@ -252,7 +256,7 @@ mod tests {
     fn get_n_disjunctive_layers_test() {
         let param: u32 = 3;
         let layers = get_n_disjunctive_layers(param, 2i32.pow(param) as usize);
-        let expected = vec![vec![1, 2, 4], vec![3, 5, 6], vec![0]];
+        let expected = vec![vec![1, 2, 4], vec![3, 5, 6]];
         assert_eq!(layers, expected);
     }
 
@@ -265,7 +269,6 @@ mod tests {
             vec![3, 6, 12, 17, 24],
             vec![5, 9, 10, 18, 20],
             vec![7, 14, 19, 25, 28],
-            vec![11, 13, 21, 22, 26],
         ];
         assert_eq!(layers, expected);
     }
@@ -274,6 +277,41 @@ mod tests {
     fn finite_multiply_bitvecs_test() {
         let to_multiply = vec![bitvec![1, 0, 1, 1, 0], bitvec![1, 1, 0, 1], bitvec![1, 1]];
         let expected = bitvec![1, 0, 0, 0, 0, 0, 0, 1, 0];
+        let result = finite_multiply_bitvecs_vec(&to_multiply);
+        assert_eq!(expected, result);
+    }
+
+    #[test]
+    fn finite_multiply_bitvecs_vec_test() {
+        let to_multiply = vec![
+            bitvec![1, 1, 0, 1, 1, 0, 0, 0, 0, 1],
+            bitvec![1, 0, 0, 1, 1, 1, 1, 1, 0, 1],
+            bitvec![1, 1, 1, 1, 1, 1, 1, 0, 1, 1],
+            bitvec![1, 1, 0, 1, 0, 0, 1, 0, 0, 1],
+            bitvec![1, 1, 0, 1, 1, 0, 1, 0, 1, 1],
+            bitvec![1, 0, 1, 0, 1, 1, 0, 1, 1, 1],
+            bitvec![1, 1, 1, 0, 0, 0, 1, 1, 1, 1],
+            bitvec![1, 1, 1, 1, 1, 0, 1, 0, 0, 1],
+            bitvec![1, 0, 0, 0, 1, 0, 0, 0, 0, 1],
+            bitvec![1, 0, 1, 1, 0, 0, 1, 1, 1, 1],
+            bitvec![1, 0, 0, 0, 0, 0, 0, 0, 1, 1],
+            bitvec![1, 0, 1, 0, 1, 0, 0, 0, 1, 1],
+            bitvec![1, 1, 0, 1, 1, 0, 1, 1, 0, 1],
+            bitvec![1, 0, 1, 0, 1, 0, 0, 1, 0, 1],
+            bitvec![1, 0, 1, 0, 0, 0, 0, 1, 1, 1],
+            bitvec![1, 0, 0, 1, 0, 1, 1, 1, 1, 1],
+            bitvec![1, 0, 1, 0, 0, 1, 1, 0, 0, 1],
+            bitvec![1, 0, 0, 0, 1, 0, 1, 1, 0, 1],
+            bitvec![1, 0, 0, 1, 1, 0, 1, 1, 1, 1],
+        ];
+        let expected = bitvec![
+            1, 1, 0, 1, 0, 0, 0, 1, 1, 1, 0, 0, 0, 1, 1, 0, 0, 0, 1, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0,
+            1, 0, 1, 1, 1, 1, 0, 1, 1, 1, 1, 0, 1, 1, 0, 1, 0, 1, 0, 0, 1, 0, 1, 0, 1, 0, 0, 0, 1,
+            1, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 1, 1, 0, 1,
+            1, 0, 1, 1, 1, 0, 0, 1, 0, 1, 0, 1, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 1,
+            1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 1, 0, 0, 0, 1, 0, 0, 1, 0, 1, 1, 0, 1, 0, 1, 0, 0, 1, 1,
+            0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 1, 1, 1, 1, 0, 1, 0, 0, 0, 0, 1, 0, 1
+        ];
         let result = finite_multiply_bitvecs_vec(&to_multiply);
         assert_eq!(expected, result);
     }

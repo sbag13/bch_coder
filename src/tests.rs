@@ -137,7 +137,7 @@ mod tests {
         let mut msg = bitvec![1, 0, 1, 1];
         msg.extend(bitvec![0; 187]);
 
-        let prime_poly = bitvec![1,0,1,1,0,1,0,0,1];
+        let prime_poly = bitvec![1, 0, 1, 1, 0, 1, 0, 0, 1];
 
         let encoder = Encoder::new(n, k, t, &prime_poly);
         let encoded = encoder.encode(&msg).unwrap();
@@ -165,6 +165,32 @@ mod tests {
 
         let encoder = Encoder::new(n, k, t, &prime_poly);
         let encoded = encoder.encode(&msg).unwrap();
+
+        let decoder = SimpleDecoder::new(n, k, t, &prime_poly);
+        let (decoded, _) = decoder.decode(&encoded).unwrap();
+        assert_eq!(msg, decoded);
+
+        let decoder = BerlekampDecoder::new(n, k, t, &prime_poly);
+        let (decoded, _) = decoder.decode(&encoded).unwrap();
+        assert_eq!(decoded, msg);
+    }
+
+    #[test]
+    #[ignore]
+    fn encode_decode_without_errors_n511_k340_t20_test() {
+        let n = 511;
+        let k = 340;
+        let t = 20;
+
+        let mut msg = bitvec![1, 0, 1, 1];
+        msg.extend(bitvec![0; 336]);
+
+        let prime_poly = bitvec![1, 1, 0, 1, 1, 0, 0, 0, 0, 1];
+
+        let encoder = Encoder::new(n, k, t, &prime_poly);
+        let encoded = encoder.encode(&msg).unwrap();
+
+        println!("elo");
 
         let decoder = SimpleDecoder::new(n, k, t, &prime_poly);
         let (decoded, _) = decoder.decode(&encoded).unwrap();

@@ -14,6 +14,7 @@ mod decoder;
 mod encoder;
 mod simple_decoder;
 mod tests;
+mod mycoder_tests;
 
 fn main() {}
 
