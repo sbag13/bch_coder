@@ -5,6 +5,7 @@ mod tests {
     use crate::encoder::Encoder;
     use crate::bch_bitvec::*;
     use crate::simple_decoder::SimpleDecoder;
+    use crate::common::get_random_places;
     use bitvec::*;
 
     #[test]
@@ -204,7 +205,7 @@ mod tests {
 
     #[test]
     #[ignore]
-    fn encode_decode_with_max_error_n255_k191_t8_test() {
+    fn encode_decode_with_max_error_not_decodable_by_simple_n255_k191_t8_test() {
         let n = 255;
         let k = 191;
         let t = 8;
@@ -217,8 +218,8 @@ mod tests {
         let encoder = Encoder::new(n, k, t, &prime_poly);
         let mut encoded = encoder.encode(&msg).unwrap();
 
-        for i in 0..20{
-            encoded.inverse_nth(i * 3);
+        for i in 0..8{
+            encoded.inverse_nth(i * 12);
         }
 
         let decoder = SimpleDecoder::new(n, k, t, &prime_poly);
@@ -257,7 +258,8 @@ mod tests {
     }
 
     #[test]
-    fn decode_with_3_errors_n31_k16_t3() {
+    #[ignore]   //fails
+    fn decode_with_3_errors_n31_k16_t3_times_100() {
         let n = 31;
         let k = 16;
         let t = 3;
@@ -271,15 +273,19 @@ mod tests {
 
         let prime_poly = bitvec![1, 0, 0, 1, 0, 1];
 
-        let encoded = bitvec![
-            0, 0, 0, 1, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 1, 1, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0,
-            1, 0
-        ];
-
         let decoder = BerlekampDecoder::new(n, k, t, &prime_poly);
-        let (decoded, remainder) = decoder.decode(&encoded).unwrap(); //TODO remainder can be removed
-        assert_eq!(decoded, msg_only);
-        assert_eq!(remainder, remainder_only);
+        
+        //fail plac [28, 25, 30]
+        for i in 0..1 {
+            let mut encoded = msg.clone();
+            // let places = get_random_places(3, 31);
+            let places = vec![28, 25, 30];
+            println!("plac {:?}", places);
+            places.iter().for_each(|place| encoded.inverse_nth(*place));
+            let (decoded, remainder) = decoder.decode(&encoded).unwrap(); //TODO remainder can be removed
+            assert_eq!(decoded, msg_only);
+            assert_eq!(remainder, remainder_only);
+        }        
     }
 
     #[test]

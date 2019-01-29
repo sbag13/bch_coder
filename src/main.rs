@@ -3,6 +3,7 @@ extern crate bitvec;
 extern crate env_logger;
 extern crate itertools;
 extern crate log;
+extern crate rand;
 
 // const POWER: usize = 9;
 // const TWO_TO_POWER: usize = 512;

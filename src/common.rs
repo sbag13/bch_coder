@@ -3,6 +3,21 @@ use bitvec::*;
 use itertools::Itertools;
 use primes::{is_prime, PrimeSet};
 use std::collections::VecDeque;
+use rand::Rng;
+
+pub fn get_random_places(n: i32, modulo: i32) ->Vec<usize> {
+    let mut nums = Vec::new();
+    for i in 0..n {
+        loop {
+            let num = rand::thread_rng().gen_range(0, modulo) as usize;
+            if !nums.contains(&num) {
+                nums.push(num); 
+                break;
+            }
+        }
+    }
+    nums
+}
 
 fn calculate_alphas(prime_polynomial: &BitVec) -> Vec<BitVec> {
     let mut alphas: Vec<BitVec> = Vec::new();

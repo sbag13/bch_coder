@@ -17,7 +17,6 @@ impl BerlekampDecoder {
         let prime_degree = prime_poly.len() as i32 - 1;
         let (gen_poly, adding_table) =
             common::get_gen_poly_and_adding_table(prime_degree, t, prime_poly);
-        println!("g {:?}", gen_poly);
         common::validate_params(n, k, &gen_poly, prime_poly);
         BerlekampDecoder {
             n: n,
@@ -28,7 +27,14 @@ impl BerlekampDecoder {
         }
     }
 
-    pub fn new_with_gen_poly(n: i32, k: i32, t: i32, gen_poly: BitVec, adding_table: Vec<Vec<i32>>) -> BerlekampDecoder {    //TODO validate or load from file
+    pub fn new_with_gen_poly(
+        n: i32,
+        k: i32,
+        t: i32,
+        gen_poly: BitVec,
+        adding_table: Vec<Vec<i32>>,
+    ) -> BerlekampDecoder {
+        //TODO validate or load from file
         BerlekampDecoder {
             n: n,
             k: k,
@@ -74,12 +80,11 @@ impl BerlekampDecoder {
 
     fn get_syndroms_alphas(&self, syndroms: &Vec<BitVec>) -> Vec<i32> {
         let mut syndroms_alphas = Vec::new();
-
         for (i, syndrome) in syndroms.iter().enumerate() {
             let mut alphas_to_add: Vec<i32> = Vec::new();
             for (j, coef) in syndrome.iter().rev().enumerate() {
                 if coef == true {
-                    alphas_to_add.push((j * (i + 1)) as i32);
+                    alphas_to_add.push(self.alpha_mod_n((j * (i + 1)) as i32));
                 }
             }
             //TODO to doc: -1 means no element
@@ -135,14 +140,18 @@ impl BerlekampDecoder {
     }
 
     fn find_dulu_idx(&self, dus: &Vec<i32>, dulus: &Vec<i32>) -> usize {
-        let (val, idx) = dulus
-            .iter()
-            .take(dulus.len() - 1)
-            .enumerate()
-            .map(|(idx, val)| (val, idx))
-            .max()
-            .unwrap();
-        idx
+        let mut max_value = -1;
+        let mut max_idx = 0;
+        for (i, (du, dulu)) in dus.iter().zip(dulus.iter()).enumerate() {
+            if i == dulus.len() - 1 {
+                break;
+            }
+            if *du != -1 && *dulu > max_value {
+                max_value = *dulu;
+                max_idx = i;
+            }
+        }
+        max_idx
     }
 
     fn alpha_mod_n(&self, alpha: i32) -> i32 {
@@ -235,6 +244,7 @@ impl Decoder for BerlekampDecoder {
 
                 let sigma_u = sigmas[u_idx].clone();
                 let du = dus[u_idx];
+
                 let dp_inv = dus[most_positive_dulu_idx] * -1;
                 let x_power = (2 as f32 * (u as f32 - up)) as i32;
                 let sigma_p = sigmas[most_positive_dulu_idx].clone();
@@ -265,13 +275,15 @@ impl Decoder for BerlekampDecoder {
                 if i == 0 {
                     alphas_to_add.push(syndroms_alphas[2 * u as usize + 2]); //TODO maybe f32
                 } else {
-                    alphas_to_add.push(self.alpha_mod_n(
-                        syndroms_alphas[2 * u as usize + 2 - i as usize]
-                            + next_sigma.iter().rev().nth(i as usize).unwrap(),
-                    ));
+                    if *(next_sigma.iter().rev().nth(i as usize).unwrap()) != -1
+                        && syndroms_alphas[2 * u as usize + 2 - i as usize] != -1 {
+                        alphas_to_add.push(self.alpha_mod_n(
+                            syndroms_alphas[2 * u as usize + 2 - i as usize]
+                                + next_sigma.iter().rev().nth(i as usize).unwrap(),
+                        ));
+                    }
                 }
             }
-
             let next_du = alphas_to_add
                 .iter()
                 .fold(-1, |sum, alpha| self.add_alphas(sum, *alpha));
@@ -280,15 +292,12 @@ impl Decoder for BerlekampDecoder {
             u_idx += 1;
         }
 
-        println!("after");
-
         let final_err_locator_poly = sigmas.iter().last().unwrap();
         let roots = self.find_roots(final_err_locator_poly);
         if roots.len() as i32 > self.t {
             return Err("Too many errors. Could not decode".to_owned());
         }
         let mut decoded = encoded.clone();
-        println!("roots: {:?}", roots);
         for root in roots {
             decoded.inverse_nth(root as usize - 1);
         }
@@ -299,7 +308,8 @@ impl Decoder for BerlekampDecoder {
     }
 }
 
-// fn println_layers(   //TODO remove
+// fn println_layer(
+//     //TODO remove
 //     n: i32,
 //     us: &Vec<f32>,
 //     sigmas: &Vec<Vec<i32>>,
